@@ -43,27 +43,22 @@ class AuthService {
     return response;
   }
 
-  async getProfile(): Promise<User> {
-    const response = await apiClient.get<ApiResponse<{ user: User }>>('/auth/profile');
-    return response;
-  }
-
-  async updateProfile(data: Partial<User>): Promise<User> {
-    const response = await apiClient.put<ApiResponse<{ user: User }>>('/auth/profile', data);
-    return response;
-  }
 
   logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
   }
 
   getStoredUser(): User | null {
+    if (typeof window === 'undefined') return null;
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   }
 
   getStoredToken(): string | null {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem('token');
   }
 }

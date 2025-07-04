@@ -18,7 +18,7 @@ const DAY_MAPPING = {
   3: 'miercoles',
   4: 'jueves',
   5: 'viernes',
-  6: 'sábado'
+  6: 'sabado'
 } as const;
 
 const DAY_LABELS = {
@@ -28,7 +28,7 @@ const DAY_LABELS = {
   'miercoles': 'Miercoles',
   'jueves': 'Jueves',
   'viernes': 'Viernes',
-  'sábado': 'Sábado'
+  'sabado': 'Sábado'
 } as const;
 
 // Función para convertir el nombre del día a índice
@@ -87,7 +87,7 @@ export default function EmployeeForm({ employee, onSave, onCancel }: EmployeeFor
 
     setIsLoading(true);
     try {
-      // Convertir schedules al formato esperado por el backend
+      console.log(schedules)
       const formattedSchedules = Object.entries(schedules).map(([dayName, times]) => ({
         day: dayName,
         start_time: times.start_time,
@@ -147,12 +147,34 @@ export default function EmployeeForm({ employee, onSave, onCancel }: EmployeeFor
     });
   };
 
+  const applyToAllDays = (sourceDay: string) => {
+    const sourceSchedule = schedules[sourceDay];
+    if (!sourceSchedule) return;
+
+    setSchedules(prev => {
+      const newSchedules = { ...prev };
+      daysOrder.forEach(dayName => {
+        if (dayName !== sourceDay) {
+          newSchedules[dayName] = {
+            start_time: sourceSchedule.start_time,
+            end_time: sourceSchedule.end_time
+          };
+        }
+      });
+      return newSchedules;
+    });
+  };
+
+  const clearAllSchedules = () => {
+    setSchedules({});
+  };
+
   const getSchedule = (dayName: string) => {
     return schedules[dayName];
   };
 
   // Orden de días para mostrar (lunes a domingo)
-  const daysOrder = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+  const daysOrder = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
   return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -245,9 +267,20 @@ export default function EmployeeForm({ employee, onSave, onCancel }: EmployeeFor
 
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Horarios de trabajo
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Horarios de trabajo
+                  </label>
+                  <div className="flex space-x-2">
+                    <button
+                        type="button"
+                        onClick={clearAllSchedules}
+                        className="text-xs text-red-600 hover:text-red-800 px-2 py-1 border border-red-300 rounded"
+                    >
+                      Limpiar todos
+                    </button>
+                  </div>
+                </div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {daysOrder.map((dayName) => {
                     const schedule = getSchedule(dayName);
@@ -271,13 +304,23 @@ export default function EmployeeForm({ employee, onSave, onCancel }: EmployeeFor
                               disabled={!schedule}
                           />
                           {schedule && (
-                              <button
-                                  type="button"
-                                  onClick={() => handleScheduleChange(dayName, 'start_time', '')}
-                                  className="text-red-600 hover:text-red-800 text-sm px-2"
-                              >
-                                Quitar
-                              </button>
+                              <div className="flex space-x-1">
+                                <button
+                                    type="button"
+                                    onClick={() => applyToAllDays(dayName)}
+                                    className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 border border-blue-300 rounded"
+                                    title="Aplicar este horario a todos los días"
+                                >
+                                  Aplicar a todos
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleScheduleChange(dayName, 'start_time', '')}
+                                    className="text-xs text-red-600 hover:text-red-800 px-2 py-1 border border-red-300 rounded"
+                                >
+                                  Quitar
+                                </button>
+                              </div>
                           )}
                         </div>
                     );

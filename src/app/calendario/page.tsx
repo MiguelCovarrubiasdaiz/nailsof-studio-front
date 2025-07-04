@@ -11,6 +11,7 @@ export default function CalendarioPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | undefined>();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [calendarKey, setCalendarKey] = useState(0);
 
   const handleNewAppointment = (date: Date, time: string) => {
     setSelectedDate(date);
@@ -31,7 +32,7 @@ export default function CalendarioPage() {
     setSelectedAppointment(undefined);
     setSelectedDate(null);
     setSelectedTime('');
-    // El calendario se refrescará automáticamente debido al useEffect en CalendarView
+    setCalendarKey(prev => prev + 1);
   };
 
   const handleCancelForm = () => {
@@ -65,6 +66,7 @@ export default function CalendarioPage() {
         </div>
 
         <CalendarView
+          key={calendarKey}
           onNewAppointment={handleNewAppointment}
           onEditAppointment={handleEditAppointment}
         />
@@ -72,6 +74,8 @@ export default function CalendarioPage() {
         {showForm && (
           <AppointmentForm
             appointment={selectedAppointment}
+            preSelectedDate={selectedDate}
+            preSelectedTime={selectedTime}
             onSave={handleSaveAppointment}
             onCancel={handleCancelForm}
           />

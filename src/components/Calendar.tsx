@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight, FiCalendar, FiClock } from 'react-icons/fi';
 import { Appointment, appointmentService } from '@/services/appointmentService';
+import { formatDateForAPI } from '@/utils';
 
 interface CalendarProps {
   onNewAppointment: (date: Date, time: string) => void;
@@ -54,9 +55,6 @@ export default function Calendar({
     return weekEnd;
   };
 
-  const formatDateForAPI = (date: Date) => {
-    return date.toISOString().split('T')[0];
-  };
 
   const weekStart = getWeekStart(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => {

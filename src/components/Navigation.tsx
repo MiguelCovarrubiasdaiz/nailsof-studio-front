@@ -3,19 +3,15 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MdDashboard, MdCalendarToday, MdPeople, MdContentCut, MdWork, MdHistory, MdSpa, MdLogout, MdPerson } from 'react-icons/md';
-import { authService } from '@/services/authService';
+import { useAuth } from '@/hooks/useAuth';
+import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
-
-  useEffect(() => {
-    const storedUser = authService.getStoredUser();
-    setUser(storedUser);
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = () => setShowUserMenu(false);
@@ -25,8 +21,8 @@ export default function Navigation() {
     }
   }, [showUserMenu]);
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
     router.push('/auth/login');
   };
 
@@ -65,20 +61,14 @@ export default function Navigation() {
                   <span>{item.label}</span>
                 </Link>
               ))}
+              
+
             </div>
           </div>
 
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-600">
-              {new Date().toLocaleDateString('es-MX', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </div>
-            
-            {user && (
+
+            {isAuthenticated && user && (
               <div className="relative">
                 <button
                   onClick={(e) => {
@@ -89,7 +79,7 @@ export default function Navigation() {
                 >
                   <MdPerson className="text-lg text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">
-                    {user.username}
+                    {user.name || user.username}
                   </span>
                 </button>
 
@@ -97,18 +87,21 @@ export default function Navigation() {
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-50">
                     <div className="py-1">
                       <div className="px-4 py-2 text-sm text-gray-500 border-b">
-                        <div className="font-medium">{user.username}</div>
+                        <div className="font-medium">{user.name || user.username}</div>
                         <div className="text-xs">{user.email}</div>
                         <div className="text-xs capitalize">{user.role}</div>
                       </div>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-                      >
-                        <MdLogout className="text-base" />
-                        <span>Cerrar Sesión</span>
-                      </button>
                     </div>
+                    {isAuthenticated && user && (
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                            title="Cerrar Sesión"
+                        >
+                          <MdLogout className="text-lg" />
+                          <span>Cerrar Sesión</span>
+                        </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -133,6 +126,9 @@ export default function Navigation() {
                 <span>{item.label}</span>
               </Link>
             ))}
+
+
+
           </div>
         </div>
       </div>

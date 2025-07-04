@@ -6,20 +6,23 @@ import { Client, clientService } from '@/services/clientService';
 import { Employee, employeeService } from '@/services/employeeService';
 import { Service, serviceService } from '@/services/serviceService';
 import { appointmentSchema, AppointmentFormData as ValidationAppointmentFormData } from '@/lib/validations';
+import { calculateEndTime } from '@/utils';
 
 interface AppointmentFormProps {
   appointment?: Appointment;
+  preSelectedDate?: Date | null;
+  preSelectedTime?: string;
   onSave: (appointment: Appointment) => void;
   onCancel: () => void;
 }
 
-export default function AppointmentForm({ appointment, onSave, onCancel }: AppointmentFormProps) {
+export default function AppointmentForm({ appointment, preSelectedDate, preSelectedTime, onSave, onCancel }: AppointmentFormProps) {
   const [formData, setFormData] = useState<ValidationAppointmentFormData>({
     client_id: appointment?.client_id || '',
     employee_id: appointment?.employee_id || '',
-    date: appointment?.date ? new Date(appointment.date) : new Date(),
-    start_time: appointment?.start_time || '',
-    end_time: appointment?.end_time || '',
+    date: appointment?.date ? new Date(appointment.date) : (preSelectedDate || new Date()),
+    start_time: appointment?.start_time || preSelectedTime || '',
+    end_time: appointment?.end_time || (preSelectedTime ? calculateEndTime(preSelectedTime) : ''),
     services: appointment?.services?.map(s => ({
       service_id: s.id,
       price: s.AppointmentService.price
@@ -172,13 +175,14 @@ export default function AppointmentForm({ appointment, onSave, onCancel }: Appoi
     return date.toISOString().split('T')[0];
   };
 
+
   if (loadingData) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg p-8">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-            <p>Cargando datos...</p>
+            <p className="text-black">Cargando datos...</p>
           </div>
         </div>
       </div>

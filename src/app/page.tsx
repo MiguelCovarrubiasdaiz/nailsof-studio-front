@@ -63,10 +63,10 @@ export default function DashboardPage() {
         serviceService.getServices({ limit: 1000, active: true })
       ]);
 
-      // Calcular estadísticas
+
       const weekRevenue = weekAppointmentsData.appointments
         .filter(apt => apt.status === 'completada')
-        .reduce((total, apt) => total + apt.total_price, 0);
+        .reduce((total, apt) => Number(total) + Number(apt.total_price), 0);
 
       setStats({
         todayAppointments: todayAppointmentsData.length,

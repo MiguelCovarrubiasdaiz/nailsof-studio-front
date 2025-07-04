@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiPlus, FiSearch, FiCalendar, FiClock, FiUser, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiCalendar, FiClock, FiUser, FiEdit2, FiTrash2, FiEye, FiX } from 'react-icons/fi';
 import { Appointment, appointmentService } from '@/services/appointmentService';
 import AppointmentForm from '@/components/AppointmentForm';
+import CancelAppointmentModal from '@/components/CancelAppointmentModal';
 
 export default function CitasPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | undefined>();
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -100,6 +103,22 @@ export default function CitasPage() {
   const handleSaveAppointment = (appointment: Appointment) => {
     setShowForm(false);
     loadAppointments(currentPage, searchTerm, statusFilter, dateFilter);
+  };
+
+  const handleCancelAppointment = (appointment: Appointment) => {
+    setAppointmentToCancel(appointment);
+    setShowCancelModal(true);
+  };
+
+  const handleCancelAppointmentSuccess = (cancelledAppointment: Appointment) => {
+    setShowCancelModal(false);
+    setAppointmentToCancel(undefined);
+    loadAppointments(currentPage, searchTerm, statusFilter, dateFilter);
+  };
+
+  const handleCancelAppointmentModalClose = () => {
+    setShowCancelModal(false);
+    setAppointmentToCancel(undefined);
   };
 
   const formatDate = (dateString: string) => {
@@ -328,6 +347,17 @@ export default function CitasPage() {
                           </button>
                         )}
                         
+                        {(appointment.status === 'programada' || appointment.status === 'confirmada') && (
+                          <button
+                            onClick={() => handleCancelAppointment(appointment)}
+                            className="px-3 py-1 text-xs font-medium text-orange-700 bg-orange-100 rounded hover:bg-orange-200"
+                            title="Cancelar cita"
+                          >
+                            <FiX className="h-3 w-3 inline mr-1" />
+                            Cancelar
+                          </button>
+                        )}
+                        
                         <button
                           onClick={() => handleEditAppointment(appointment)}
                           className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
@@ -403,8 +433,18 @@ export default function CitasPage() {
       {showForm && (
         <AppointmentForm
           appointment={selectedAppointment}
+          preSelectedDate={null}
+          preSelectedTime=""
           onSave={handleSaveAppointment}
           onCancel={() => setShowForm(false)}
+        />
+      )}
+
+      {showCancelModal && appointmentToCancel && (
+        <CancelAppointmentModal
+          appointment={appointmentToCancel}
+          onSuccess={handleCancelAppointmentSuccess}
+          onCancel={handleCancelAppointmentModalClose}
         />
       )}
     </div>

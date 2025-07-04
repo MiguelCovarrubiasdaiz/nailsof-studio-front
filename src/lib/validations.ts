@@ -100,7 +100,14 @@ export const appointmentSchema = yup.object({
   date: yup
     .date()
     .required('La fecha es requerida')
-    .min(new Date(), 'La fecha no puede ser en el pasado'),
+    .test('not-past-date', 'La fecha no puede ser en el pasado', function(value) {
+      if (!value) return true;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Resetear la hora a medianoche
+      const selectedDate = new Date(value);
+      selectedDate.setHours(0, 0, 0, 0); // Resetear la hora a medianoche
+      return selectedDate >= today;
+    }),
   start_time: yup
     .string()
     .required('La hora de inicio es requerida')

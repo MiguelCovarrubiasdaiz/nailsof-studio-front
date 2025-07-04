@@ -1,4 +1,5 @@
 import { apiClient, ApiResponse, PaginatedResponse } from '@/lib/api';
+import { formatDateForAPI } from '@/utils';
 
 export interface Client {
   id: string;
@@ -96,12 +97,22 @@ class AppointmentService {
   }
 
   async createAppointment(appointmentData: AppointmentFormData): Promise<Appointment> {
-    const response = await apiClient.post<ApiResponse<Appointment>>('/appointments', appointmentData);
+    // Transformar la fecha a string antes de enviar a la API
+    const apiData = {
+      ...appointmentData,
+      date: formatDateForAPI(appointmentData.date)
+    };
+    const response = await apiClient.post<ApiResponse<Appointment>>('/appointments', apiData);
     return response;
   }
 
   async updateAppointment(id: string, appointmentData: Partial<AppointmentFormData>): Promise<Appointment> {
-    const response = await apiClient.put<ApiResponse<Appointment>>(`/appointments/${id}`, appointmentData);
+    // Transformar la fecha a string antes de enviar a la API
+    const apiData = {
+      ...appointmentData,
+      ...(appointmentData.date && { date: formatDateForAPI(appointmentData.date) })
+    };
+    const response = await apiClient.put<ApiResponse<Appointment>>(`/appointments/${id}`, apiData);
     return response;
   }
 

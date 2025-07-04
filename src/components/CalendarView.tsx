@@ -4,6 +4,21 @@ import { useState, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight, FiCalendar, FiClock, FiUser, FiDollarSign, FiX } from 'react-icons/fi';
 import { Appointment, appointmentService } from '@/services/appointmentService';
 import CancelAppointmentModal from '@/components/CancelAppointmentModal';
+import {
+  formatDateShort,
+  formatDateForAPI,
+  formatPrice,
+  getWeekStartAsDate,
+  getWeekEndAsDate,
+  getMonthYear,
+  addDays,
+  isToday,
+  generateDayHours,
+  generateWeekDaysAsDate,
+  getStatusColor,
+  getStatusLabel,
+  dayJS
+} from '@/utils';
 
 interface CalendarViewProps {
   onNewAppointment: (date: Date, time: string) => void;
@@ -28,15 +43,14 @@ export default function CalendarView({
   const loadAppointments = async () => {
     setIsLoading(true);
     try {
-      const startDate = calendarView === 'semana' ? getWeekStart(currentDate) : currentDate;
-      const endDate = calendarView === 'semana' ? getWeekEnd(startDate) : currentDate;
+      const startDate = calendarView === 'semana' ? getWeekStartAsDate(currentDate) : currentDate;
+      const endDate = calendarView === 'semana' ? getWeekEndAsDate(startDate) : currentDate;
 
       const data = await appointmentService.getAppointments({
         start_date: formatDateForAPI(startDate),
         end_date: formatDateForAPI(endDate),
         limit: 100
       });
-      console.log('Citas cargadas:', data);
 
       // Asegurarse de que appointments sea un array
       setAppointments(data.appointments || []);
@@ -48,127 +62,33 @@ export default function CalendarView({
     }
   };
 
-  const getWeekStart = (date: Date) => {
-    const weekStart = new Date(date);
-    const day = weekStart.getDay();
-    const diff = weekStart.getDate() - day;
-    weekStart.setDate(diff);
-    weekStart.setHours(0, 0, 0, 0);
-    return weekStart;
-  };
-
-  const getWeekEnd = (weekStart: Date) => {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-    return weekEnd;
-  };
-
-  const formatDateForAPI = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const weekStart = getWeekStart(currentDate);
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + i);
-    return day;
-  });
-
-  const dayHours = Array.from({ length: 12 }, (_, i) => {
-    const hour = 8 + i;
-    return `${hour.toString().padStart(2, '0')}:00`;
-  });
+  const weekDays = generateWeekDaysAsDate(currentDate);
+  const dayHours = generateDayHours();
 
   const getDayAppointments = (date: Date) => {
     return appointments.filter(appointment => {
-      const appointmentDate = new Date(appointment.date);
-      return (
-          appointmentDate.getFullYear() === date.getFullYear() &&
-          appointmentDate.getMonth() === date.getMonth() &&
-          appointmentDate.getDate() === date.getDate()
-      );
+      const appointmentDate = dayJS(appointment.date);
+      const targetDate = dayJS(date);
+      return appointmentDate.isSame(targetDate, 'day');
     });
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-MX', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(price || 0);
   };
 
   const navigateWeek = (direction: 'anterior' | 'siguiente') => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() + (direction === 'siguiente' ? 7 : -7));
-    setCurrentDate(newDate);
+    const days = direction === 'siguiente' ? 7 : -7;
+    setCurrentDate(addDays(currentDate, days).toDate());
   };
 
   const navigateDay = (direction: 'anterior' | 'siguiente') => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() + (direction === 'siguiente' ? 1 : -1));
-    setCurrentDate(newDate);
+    const days = direction === 'siguiente' ? 1 : -1;
+    setCurrentDate(addDays(currentDate, days).toDate());
   };
 
   const goToToday = () => {
     setCurrentDate(new Date());
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'programada': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'confirmada': return 'bg-green-100 text-green-800 border-green-200';
-      case 'en_proceso': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'completada': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'cancelada': return 'bg-red-100 text-red-800 border-red-200';
-      case 'no_asistio': return 'bg-orange-100 text-orange-800 border-orange-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'programada': return 'Programada';
-      case 'confirmada': return 'Confirmada';
-      case 'en_proceso': return 'En proceso';
-      case 'completada': return 'Completada';
-      case 'cancelada': return 'Cancelada';
-      case 'no_asistio': return 'No asistió';
-      default: return status;
-    }
-  };
 
-  // Función para calcular la duración de la cita
-  const getAppointmentDuration = (appointment: Appointment) => {
-    const start = appointment.start_time.split(':');
-    const end = appointment.end_time.split(':');
-    const startMinutes = parseInt(start[0]) * 60 + parseInt(start[1]);
-    const endMinutes = parseInt(end[0]) * 60 + parseInt(end[1]);
-    return (endMinutes - startMinutes) / 60; // Duración en horas
-  };
-
-  // Función para verificar si una cita ocupa múltiples slots de hora
-  const getAppointmentSlots = (appointment: Appointment) => {
-    const duration = getAppointmentDuration(appointment);
-    const slots = Math.ceil(duration);
-    const startHour = parseInt(appointment.start_time.split(':')[0]);
-
-    return Array.from({ length: slots }, (_, i) => {
-      const hour = startHour + i;
-      return `${hour.toString().padStart(2, '0')}:00`;
-    });
-  };
 
   const handleCancelAppointment = (appointment: Appointment, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -195,7 +115,7 @@ export default function CalendarView({
         <div className="p-4 border-b flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center space-x-4">
             <h2 className="text-xl font-semibold">
-              {currentDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}
+              {getMonthYear(currentDate)}
             </h2>
             <div className="flex space-x-2">
               <button
@@ -262,14 +182,14 @@ export default function CalendarView({
                 <div className="grid grid-cols-8 border-b">
                   <div className="p-3 text-sm font-medium text-gray-500">Hora</div>
                   {weekDays.map((day, index) => {
-                    const isToday = day.toDateString() === new Date().toDateString();
+                    const isDayToday = isToday(day);
                     return (
-                        <div key={index} className={`p-3 text-center border-l ${isToday ? 'bg-blue-50' : ''}`}>
+                        <div key={index} className={`p-3 text-center border-l ${isDayToday ? 'bg-blue-50' : ''}`}>
                           <div className="text-sm font-medium text-gray-900">
-                            {formatDate(day)}
+                            {formatDateShort(day)}
                           </div>
                           <div className={`text-xs ${
-                              isToday
+                              isDayToday
                                   ? 'text-blue-600 font-semibold'
                                   : 'text-gray-500'
                           }`}>
@@ -291,13 +211,13 @@ export default function CalendarView({
                         const hourAppointments = dayAppointments.filter(appointment =>
                             appointment.start_time.startsWith(hour.substring(0, 2))
                         );
-                        const isToday = day.toDateString() === new Date().toDateString();
+                        const isDayToday = isToday(day);
 
                         return (
                             <div
                                 key={dayIndex}
                                 className={`border-l p-1 hover:bg-gray-50 cursor-pointer relative ${
-                                    isToday ? 'bg-blue-50/30' : ''
+                                    isDayToday ? 'bg-blue-50/30' : ''
                                 }`}
                                 onClick={() => onNewAppointment(day, hour)}
                             >
@@ -354,7 +274,7 @@ export default function CalendarView({
             <div className="p-4">
               <div className="mb-4">
                 <h3 className="text-lg font-medium">
-                  {formatDate(currentDate)} - {currentDate.getDate()}
+                  {formatDateShort(currentDate)} - {currentDate.getDate()}
                 </h3>
               </div>
 
